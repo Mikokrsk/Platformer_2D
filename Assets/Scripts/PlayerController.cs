@@ -5,13 +5,15 @@ using UnityEngine.PlayerLoop;
 
 public class PlayerController : MonoBehaviour
 {
-    private Rigidbody2D rigidbody2D;
+    public static PlayerController Instance;
+    [SerializeField] private Rigidbody2D _rigidbody2D;
     [SerializeField] private float _speedPower;
     [SerializeField] private float _jumpForce;
     [SerializeField] private bool _isGrounded;
     [SerializeField] private bool _canDoubleJump;
     [SerializeField] private float _speedUp;
-    [SerializeField] private float _horizontal;
+    [SerializeField] private float _speedNormal;
+    [SerializeField] public float _horizontal;
     // Dash
     [SerializeField] private TrailRenderer _trailRenderer;
     [SerializeField] private float _dashPower;
@@ -24,10 +26,17 @@ public class PlayerController : MonoBehaviour
     // [SerializeField] private float _dashingTimeNow;
     // [SerializeField] private Vector2 _dashMove;
     // Start is called before the first frame update
+    [SerializeField] private Shuriken _shurikenPref;
+    //[SerializeField] private Transform _shurikenPos;
     void Start()
     {
-        rigidbody2D = GetComponent<Rigidbody2D>();
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        _rigidbody2D = GetComponent<Rigidbody2D>();
         _trailRenderer = GetComponent<TrailRenderer>();
+        //_shurikenPos = gameObject.transform.Find("ShurikenPos").GetComponentInChildren<Transform>().;
     }
 
     // Update is called once per frame
@@ -39,6 +48,14 @@ public class PlayerController : MonoBehaviour
             return;
         }
         _horizontal = Input.GetAxisRaw("Horizontal");
+        if(_horizontal >0)
+        {
+            transform.localScale = new Vector2(1,1);
+        }
+        else if (_horizontal <0)
+        {
+            transform.localScale = new Vector2(-1,1);
+        }
         /*if (Input.GetAxis("Horizontal") != 0)
         {
             var horizontalMove = new Vector2(Input.GetAxis("Horizontal"), 0);
@@ -76,16 +93,16 @@ public class PlayerController : MonoBehaviour
             {
                 _canDoubleJump = false;
             }
-            rigidbody2D.AddForce(Vector2.up * _jumpForce, ForceMode2D.Impulse);
+            _rigidbody2D.AddForce(Vector2.up * _jumpForce, ForceMode2D.Impulse);
         }
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        if (Input.GetKey(KeyCode.LeftShift))
         {
-            _speedPower *= _speedUp;
+            _speedPower = _speedUp;
             // rigidbody2D.mass = 1f;
         }
-        else if (Input.GetKeyUp(KeyCode.LeftShift))
+        else
         {
-            _speedPower /= _speedUp;
+            _speedPower = _speedNormal;
         }
         if (_canDash && Input.GetKey(KeyCode.LeftControl) && _horizontal != 0)
         {
@@ -101,6 +118,11 @@ public class PlayerController : MonoBehaviour
                         _dashMove = new Vector2(moveX, 0);*/
             StartCoroutine(Dash());
         }
+        if(Input.GetButtonDown("Fire"))
+        {
+            var shuriken = Instantiate(_shurikenPref,transform.position,transform.rotation);
+            shuriken._speedPower += this._speedPower;
+        }
     }
     void FixedUpdate()
     {
@@ -108,20 +130,20 @@ public class PlayerController : MonoBehaviour
         {
             return;
         }
-        rigidbody2D.velocity = new Vector2(_horizontal * _speedPower, rigidbody2D.velocity.y);
+        _rigidbody2D.velocity = new Vector2(_horizontal * _speedPower, _rigidbody2D.velocity.y);
     }
     IEnumerator Dash()
     {
         _canDash = false;
         _isDashing = true;
         _trailRenderer.emitting = true;
-        var defaultGravity = rigidbody2D.gravityScale;
-        rigidbody2D.gravityScale = 0;
-        rigidbody2D.velocity = new Vector2(_horizontal * transform.localScale.x * _dashPower, 0);
+        var defaultGravity = _rigidbody2D.gravityScale;
+        _rigidbody2D.gravityScale = 0;
+        _rigidbody2D.velocity = new Vector2(_horizontal *  _dashPower, 0);
         yield return new WaitForSeconds(_dashingTime);
         _isDashing = false;
         _trailRenderer.emitting = false;
-        rigidbody2D.gravityScale = defaultGravity;
+        _rigidbody2D.gravityScale = defaultGravity;
         yield return new WaitForSeconds(_dashingCooldown);
         _canDash = true;
         /* _canDash = false;
